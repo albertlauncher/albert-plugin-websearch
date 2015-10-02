@@ -15,21 +15,32 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
-#include <QWidget>
-#include "ui_configwidget.h"
+#include "interfaces/baseobjects.h"
+class Extension;
 
 namespace Websearch {
 
-class ConfigWidget final : public QWidget
+class SearchEngine final : public A2Leaf
 {
-    Q_OBJECT
+    friend class Extension;
+
 public:
-    explicit ConfigWidget(QWidget *parent = 0);
-    ~ConfigWidget();
-    Ui::ConfigWidget ui;
+    SearchEngine() : enabled_(false), usage_(0) {}
+
+    QString name() const override;
+    QString info() const override;
+    QIcon icon() const override;
+    void activate() override;
 
 private:
-    void onButton_SetIcon();
+    bool    enabled_;
+    QString name_;
+    QString url_;
+    QString trigger_;
+    QString searchTerm_;
+    QString iconPath_;
+    QIcon   icon_;
+    uint    usage_;
 };
 
 }
