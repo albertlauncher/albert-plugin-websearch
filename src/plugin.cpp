@@ -17,6 +17,7 @@
 ALBERT_LOGGING_CATEGORY("websearch")
 using namespace albert;
 using namespace std;
+using namespace util;
 
 namespace {
 static const char * ENGINES_FILE_NAME  = "engines.json";
