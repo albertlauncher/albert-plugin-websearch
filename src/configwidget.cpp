@@ -185,10 +185,10 @@ ConfigWidget::ConfigWidget(Plugin *plugin, QWidget *parent)
 {
     ui.setupUi(this);
 
-    ui.tableView_searches->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
-    ui.tableView_searches->horizontalHeader()->setStretchLastSection(true);
-    ui.tableView_searches->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     ui.tableView_searches->setModel(new EnginesModel(plugin, ui.tableView_searches));
+    ui.tableView_searches->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);  // requires a model!
+    ui.tableView_searches->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);  // requires a model!
+    ui.tableView_searches->horizontalHeader()->setStretchLastSection(true);
 
     connect(ui.pushButton_new, &QPushButton::clicked,
             this, &ConfigWidget::onButton_new);
