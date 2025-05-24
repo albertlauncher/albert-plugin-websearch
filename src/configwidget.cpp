@@ -16,6 +16,7 @@
 #include <albert/logging.h>
 enum class Section{ Name, Trigger, Fallback, URL} ;
 static const int sectionCount = 4;
+using namespace Qt::StringLiterals;
 using namespace std;
 
 class EnginesModel final : public QAbstractTableModel
@@ -104,7 +105,7 @@ public:
                 return se.name;
             case Section::Trigger:{
                 auto trigger = se.trigger;
-                return trigger.replace(" ", "•");
+                return trigger.replace(u' ', u'•');
             }
             case Section::URL:
                 return se.url;
@@ -214,7 +215,7 @@ static void handleAcceptedEditor(const SearchEngineEditor &editor, SearchEngine 
 
         auto image = editor.icon_image->scaled(256, 256, Qt::KeepAspectRatio, Qt::SmoothTransformation);
 
-        auto dst = QDir(plugin.dataLocation()).filePath(QString("%1.png").arg(engine.id));
+        auto dst = QDir(plugin.dataLocation()).filePath(engine.id) + u".png"_s;
         if (!image.save(dst)){
             auto msg = ConfigWidget::tr("Could not save image to '%1'.").arg(dst);
             WARN << msg;
@@ -223,7 +224,7 @@ static void handleAcceptedEditor(const SearchEngineEditor &editor, SearchEngine 
         }
 
         // set url
-        engine.iconUrl = "file:" + dst;
+        engine.iconUrl = u"file:"_s + dst;
     }
 
     engine.name = editor.name();
@@ -258,10 +259,10 @@ void ConfigWidget::onActivated(QModelIndex index)
 
 void ConfigWidget::onButton_new()
 {
-    if (SearchEngineEditor editor(":default", "", "", "", false, this); editor.exec()){
+    if (SearchEngineEditor editor(u":default"_s, {}, {}, {}, false, this); editor.exec()){
         SearchEngine engine;
         engine.id = QUuid::createUuid().toString(QUuid::WithoutBraces).left(8);
-        engine.iconUrl = ":default";
+        engine.iconUrl = u":default"_s;
         handleAcceptedEditor(editor, engine, *plugin_);
         auto engines = plugin_->engines();
         engines.emplace_back(engine);

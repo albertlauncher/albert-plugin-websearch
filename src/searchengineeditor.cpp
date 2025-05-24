@@ -5,13 +5,14 @@
 #include <QDragEnterEvent>
 #include <QDropEvent>
 #include <QFileDialog>
-#include <QMessageBox>
 #include <QMimeData>
 #include <QMimeDatabase>
 #include <QStandardPaths>
 #include <QToolButton>
 #include <QUrl>
-
+#include <albert/messagebox.h>
+using namespace Qt::StringLiterals;
+using namespace albert::util;
 
 SearchEngineEditor::SearchEngineEditor(const QString &icon_url,
                                        const QString &name,
@@ -67,8 +68,7 @@ SearchEngineEditor::SearchEngineEditor(const QString &icon_url,
         if (ui.lineEdit_name->text().isEmpty()
             || ui.lineEdit_trigger->text().isEmpty()
             || ui.lineEdit_url->text().isEmpty())
-            QMessageBox::warning(this, qApp->applicationDisplayName(),
-                                 "None of the fields must be empty.");
+            warning(u"None of the fields must be empty."_s);
         else
             accept();
     });
@@ -101,7 +101,8 @@ bool SearchEngineEditor::eventFilter(QObject *watched, QEvent *event)
                 } else if (e->mimeData()->hasUrls()) {
                     QMimeDatabase db;
                     for (const QUrl &url : e->mimeData()->urls()) {
-                        if (url.isLocalFile() && db.mimeTypeForUrl(url).name().startsWith("image/")){
+                        if (url.isLocalFile()
+                            && db.mimeTypeForUrl(url).name().startsWith(u"image/"_s)){
                             e->acceptProposedAction();
                             return true;
                         }
@@ -121,7 +122,8 @@ bool SearchEngineEditor::eventFilter(QObject *watched, QEvent *event)
                 } else if (e->mimeData()->hasUrls()) {
                     QMimeDatabase db;
                     for (const QUrl &url : e->mimeData()->urls()) {
-                        if (url.isLocalFile() && db.mimeTypeForUrl(url).name().startsWith("image/")){
+                        if (url.isLocalFile()
+                            && db.mimeTypeForUrl(url).name().startsWith(u"image/"_s)){
                             icon_image = std::make_unique<QImage>(url.toLocalFile());
                             ui.toolButton_icon->setIcon(QIcon(QPixmap::fromImage(*icon_image)));
                             e->acceptProposedAction();

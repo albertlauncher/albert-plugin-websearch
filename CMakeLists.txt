@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(websearch VERSION 10.4)
+project(websearch VERSION 10.5)
 
 find_package(Albert REQUIRED)
 

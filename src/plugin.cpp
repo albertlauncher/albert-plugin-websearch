@@ -15,19 +15,20 @@
 #include <array>
 #include <vector>
 ALBERT_LOGGING_CATEGORY("websearch")
+using namespace Qt::StringLiterals;
+using namespace albert::util;
 using namespace albert;
 using namespace std;
-using namespace util;
 
 namespace {
-static const char * ENGINES_FILE_NAME  = "engines.json";
-static const char * CK_ENGINE_ID       = "id";
-static const char * CK_ENGINE_GUID     = "guid";  // To be removed in future releases
-static const char * CK_ENGINE_NAME     = "name";
-static const char * CK_ENGINE_URL      = "url";
-static const char * CK_ENGINE_TRIGGER  = "trigger";
-static const char * CK_ENGINE_ICON     = "iconPath";
-static const char * CK_ENGINE_FALLBACK = "fallback";
+static const auto &ENGINES_FILE_NAME  = u"engines.json"_s;
+static const auto &CK_ENGINE_ID       = u"id"_s;
+static const auto &CK_ENGINE_GUID     = u"guid"_s;  // To be removed in future releases
+static const auto &CK_ENGINE_NAME     = u"name"_s;
+static const auto &CK_ENGINE_URL      = u"url"_s;
+static const auto &CK_ENGINE_TRIGGER  = u"trigger"_s;
+static const auto &CK_ENGINE_ICON     = u"iconPath"_s;
+static const auto &CK_ENGINE_FALLBACK = u"fallback"_s;
 }
 
 static QByteArray serializeEngines(const vector<SearchEngine> &engines)
@@ -104,7 +105,7 @@ void Plugin::setEngines(vector<SearchEngine> engines)
     if (f.open(QIODevice::WriteOnly))
         f.write(serializeEngines(searchEngines_));
     else
-        CRIT << QString("Could not write to file: '%1' %2.").arg(f.fileName(), f.errorString());
+        CRIT << u"Could not write to file: '%1' %2."_s.arg(f.fileName(), f.errorString());
 
     emit enginesChanged(searchEngines_);
 }
@@ -112,7 +113,7 @@ void Plugin::setEngines(vector<SearchEngine> engines)
 void Plugin::restoreDefaultEngines()
 {
     vector<SearchEngine> searchEngines;
-    QFile f(QString(":%1").arg(ENGINES_FILE_NAME));
+    QFile f(u':' + ENGINES_FILE_NAME);
     if (f.open(QIODevice::ReadOnly))
     {
         const auto a = QJsonDocument::fromJson(f.readAll()).array();
@@ -136,14 +137,16 @@ void Plugin::restoreDefaultEngines()
 
 static shared_ptr<StandardItem> buildItem(const SearchEngine &se, const QString &search_term)
 {
-    QString url = QString(se.url).replace("%s", QUrl::toPercentEncoding(search_term));
+    QString url = QString(se.url)
+                      .replace(u"%s"_s, QString::fromUtf8(QUrl::toPercentEncoding(search_term)));
+
     return StandardItem::make(
         se.id,
         se.name,
         Plugin::tr("Search %1 for '%2'").arg(se.name, search_term),
-        QString("%1 %2").arg(se.trigger, search_term),
+        u"%1 %2"_s.arg(se.trigger, search_term),
         {se.iconUrl},
-        {{"run", Plugin::tr("Run websearch"), [url](){ openUrl(url); }}}
+        {{u"run"_s, Plugin::tr("Run websearch"), [url](){ openUrl(url); }}}
     );
 }
 
@@ -160,7 +163,7 @@ vector<RankItem> Plugin::handleGlobalQuery(const Query &query)
 
         for (const auto &s : S)
         {
-            auto keyword = QStringLiteral("%1 ").arg(s.toLower());
+            auto keyword = u"%1 "_s.arg(s.toLower());
             auto prefix = query.string().toLower().left(keyword.size());
             Matcher matcher(prefix, {});
             Match m = matcher.match(keyword);
@@ -183,7 +186,7 @@ vector<shared_ptr<Item>> Plugin::fallbacks(const QString &query) const
     if (!query.isEmpty())
         for (const SearchEngine &e: searchEngines_)
             if (e.fallback)
-                results.emplace_back(buildItem(e, query.isEmpty()?"…":query));
+                results.emplace_back(buildItem(e, query.isEmpty() ? u"…"_s : query));
     return results;
 }
 
