@@ -8,10 +8,10 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QUrl>
-#include <albert/albert.h>
 #include <albert/logging.h>
 #include <albert/matcher.h>
 #include <albert/standarditem.h>
+#include <albert/systemutil.h>
 #include <array>
 #include <vector>
 ALBERT_LOGGING_CATEGORY("websearch")
