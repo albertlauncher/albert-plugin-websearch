@@ -144,9 +144,9 @@ static shared_ptr<StandardItem> buildItem(const SearchEngine &se, const QString 
         se.id,
         se.name,
         Plugin::tr("Search %1 for '%2'").arg(se.name, search_term),
-        u"%1 %2"_s.arg(se.trigger, search_term),
         {se.iconUrl},
-        {{u"run"_s, Plugin::tr("Run websearch"), [url](){ openUrl(url); }}}
+        {{u"run"_s, Plugin::tr("Run websearch"), [url]{ openUrl(url); }}},
+        u"%1 %2"_s.arg(se.trigger, search_term)
     );
 }
 

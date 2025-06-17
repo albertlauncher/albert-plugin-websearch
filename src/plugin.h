@@ -16,7 +16,7 @@ struct SearchEngine
     bool fallback;
 };
 
-class Plugin : public albert::ExtensionPlugin,
+class Plugin : public albert::util::ExtensionPlugin,
                public albert::GlobalQueryHandler,
                public albert::FallbackHandler
 
