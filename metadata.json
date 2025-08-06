@@ -3,6 +3,7 @@
     "description": "Online search engines",
     "description[de]": "Online Suchmaschinen",
     "license": "MIT",
+    "maintainers": ["@manuelschneid3r"],
     "name": "Web search",
     "name[de]": "Websuche",
     "url": "https://github.com/albertlauncher/albert-plugin-websearch",
