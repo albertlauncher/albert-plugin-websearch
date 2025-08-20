@@ -1,1 +1,1 @@
-# albert-plugin-websearch
+# Albert plugin: Web search
