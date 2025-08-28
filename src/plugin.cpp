@@ -10,6 +10,7 @@
 #include <QUrl>
 #include <albert/logging.h>
 #include <albert/matcher.h>
+#include <albert/networkutil.h>
 #include <albert/standarditem.h>
 #include <albert/systemutil.h>
 #include <array>
@@ -137,8 +138,7 @@ void Plugin::restoreDefaultEngines()
 
 static shared_ptr<StandardItem> buildItem(const SearchEngine &se, const QString &search_term)
 {
-    QString url = QString(se.url)
-                      .replace(u"%s"_s, QString::fromUtf8(QUrl::toPercentEncoding(search_term)));
+    QString url = QString(se.url).replace(u"%s"_s, percentEncoded(search_term));
 
     return StandardItem::make(
         se.id,
