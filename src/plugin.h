@@ -11,7 +11,7 @@ struct SearchEngine
     QString id;
     QString name;
     QString trigger;
-    QString iconUrl;
+    QString icon_path;
     QString url;
     bool fallback;
 };

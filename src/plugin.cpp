@@ -8,6 +8,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QUrl>
+#include <albert/iconutil.h>
 #include <albert/logging.h>
 #include <albert/matcher.h>
 #include <albert/networkutil.h>
@@ -42,7 +43,7 @@ static QByteArray serializeEngines(const vector<SearchEngine> &engines)
         o[CK_ENGINE_NAME] = e.name;
         o[CK_ENGINE_URL] = e.url;
         o[CK_ENGINE_TRIGGER] = e.trigger;
-        o[CK_ENGINE_ICON] = e.iconUrl;
+        o[CK_ENGINE_ICON] = e.icon_path;
         o[CK_ENGINE_FALLBACK] = e.fallback;
         a.append(o);
     }
@@ -69,7 +70,7 @@ static vector<SearchEngine> deserializeEngines(const QByteArray &json)
 
         e.name = o[CK_ENGINE_NAME].toString();
         e.trigger = o[CK_ENGINE_TRIGGER].toString().trimmed();
-        e.iconUrl = o[CK_ENGINE_ICON].toString();
+        e.icon_path = o[CK_ENGINE_ICON].toString();
         e.url = o[CK_ENGINE_URL].toString();
         // change this to false in future releases
         // For now while users configs do not have the fallback key,
@@ -125,7 +126,7 @@ void Plugin::restoreDefaultEngines()
             e.id = QUuid::createUuid().toString(QUuid::WithoutBraces).left(8);
             e.name = o[CK_ENGINE_NAME].toString();
             e.trigger = o[CK_ENGINE_TRIGGER].toString();
-            e.iconUrl = o[CK_ENGINE_ICON].toString();
+            e.icon_path = o[CK_ENGINE_ICON].toString();
             e.url = o[CK_ENGINE_URL].toString();
             e.fallback = o[CK_ENGINE_FALLBACK].toBool(false);
             searchEngines.push_back(e);
@@ -144,7 +145,7 @@ static shared_ptr<StandardItem> buildItem(const SearchEngine &se, const QString 
         se.id,
         se.name,
         Plugin::tr("Search %1 for '%2'").arg(se.name, search_term),
-        {se.iconUrl},
+        [p=se.icon_path]{ return makeImageIcon(p); },
         {{u"run"_s, Plugin::tr("Run websearch"), [url]{ openUrl(url); }}},
         u"%1 %2"_s.arg(se.trigger, search_term)
     );

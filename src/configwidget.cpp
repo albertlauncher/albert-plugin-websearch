@@ -118,7 +118,7 @@ public:
             if ((Section)index.column() == Section::Name) {
                 // Resizing request thounsands of repaints. Creating an icon for
                 // ever paint event is to expensive. Therefor maintain an icon cache
-                auto icon_url = se.iconUrl;
+                auto icon_url = se.icon_path;
                 try {
                     return iconCache.at(icon_url);
                 } catch (const out_of_range &) {
@@ -210,7 +210,7 @@ static void handleAcceptedEditor(const SearchEngineEditor &editor, SearchEngine 
     if (editor.icon_image){  // If icon changed copy the file
 
         // If there has been a user icon remove it
-        if (QUrl url(engine.iconUrl); url.isLocalFile())
+        if (QUrl url(engine.icon_path); url.isLocalFile())
             QFile::moveToTrash(url.toLocalFile());
 
         auto image = editor.icon_image->scaled(256, 256, Qt::KeepAspectRatio, Qt::SmoothTransformation);
@@ -224,7 +224,7 @@ static void handleAcceptedEditor(const SearchEngineEditor &editor, SearchEngine 
         }
 
         // set url
-        engine.iconUrl = u"file:"_s + dst;
+        engine.icon_path = dst;
     }
 
     engine.name = editor.name();
@@ -244,7 +244,7 @@ void ConfigWidget::onActivated(QModelIndex index)
     auto engines = plugin_->engines();
     auto &engine = engines[index.row()];
 
-    SearchEngineEditor editor(engine.iconUrl,
+    SearchEngineEditor editor(engine.icon_path,
                               engine.name,
                               engine.trigger,
                               engine.url,
@@ -262,7 +262,7 @@ void ConfigWidget::onButton_new()
     if (SearchEngineEditor editor(u":default"_s, {}, {}, {}, false, this); editor.exec()){
         SearchEngine engine;
         engine.id = QUuid::createUuid().toString(QUuid::WithoutBraces).left(8);
-        engine.iconUrl = u":default"_s;
+        engine.icon_path = u":default"_s;
         handleAcceptedEditor(editor, engine, *plugin_);
         auto engines = plugin_->engines();
         engines.emplace_back(engine);
@@ -285,7 +285,7 @@ void ConfigWidget::onButton_remove()
         auto engines = plugin_->engines();
         auto &engine = engines[index.row()];
 
-        if (QUrl url(engine.iconUrl); url.isLocalFile())
+        if (QUrl url(engine.icon_path); url.isLocalFile())
             QFile::moveToTrash(url.toLocalFile());
 
         engines.erase(engines.begin() + index.row());
