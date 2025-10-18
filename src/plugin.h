@@ -16,7 +16,7 @@ struct SearchEngine
     bool fallback;
 };
 
-class Plugin : public albert::util::ExtensionPlugin,
+class Plugin : public albert::ExtensionPlugin,
                public albert::GlobalQueryHandler,
                public albert::FallbackHandler
 
@@ -30,7 +30,7 @@ public:
     void restoreDefaultEngines();
 
 private:
-    std::vector<albert::RankItem> handleGlobalQuery(const albert::Query &) override;
+    std::vector<albert::RankItem> rankItems(albert::QueryContext &) override;
     std::vector<std::shared_ptr<albert::Item>> fallbacks(const QString &) const override;
     QWidget *buildConfigWidget() override;
 

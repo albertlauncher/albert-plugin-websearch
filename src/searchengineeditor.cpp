@@ -12,7 +12,7 @@
 #include <QUrl>
 #include <albert/messagebox.h>
 using namespace Qt::StringLiterals;
-using namespace albert::util;
+using namespace albert;
 
 SearchEngineEditor::SearchEngineEditor(const QString &icon_url,
                                        const QString &name,

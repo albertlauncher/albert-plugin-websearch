@@ -18,7 +18,6 @@
 #include <vector>
 ALBERT_LOGGING_CATEGORY("websearch")
 using namespace Qt::StringLiterals;
-using namespace albert::util;
 using namespace albert;
 using namespace std;
 
@@ -83,8 +82,8 @@ static vector<SearchEngine> deserializeEngines(const QByteArray &json)
 
 Plugin::Plugin()
 {
-    tryCreateDirectory(dataLocation());
-    tryCreateDirectory(configLocation());
+    filesystem::create_directories(dataLocation());
+    filesystem::create_directories(configLocation());
 
     QFile f(QDir(configLocation()).filePath(ENGINES_FILE_NAME));
     if (f.open(QIODevice::ReadOnly))
@@ -151,7 +150,7 @@ static shared_ptr<StandardItem> buildItem(const SearchEngine &se, const QString 
     );
 }
 
-vector<RankItem> Plugin::handleGlobalQuery(const Query &query)
+vector<RankItem> Plugin::rankItems(QueryContext &ctx)
 {
     vector<RankItem> results;
 
@@ -165,12 +164,12 @@ vector<RankItem> Plugin::handleGlobalQuery(const Query &query)
         for (const auto &s : S)
         {
             auto keyword = u"%1 "_s.arg(s.toLower());
-            auto prefix = query.string().toLower().left(keyword.size());
+            auto prefix = ctx.query().toLower().left(keyword.size());
             Matcher matcher(prefix, {});
             Match m = matcher.match(keyword);
             if (m)
             {
-                results.emplace_back(buildItem(e, query.string().mid(prefix.size())), m);
+                results.emplace_back(buildItem(e, ctx.query().mid(prefix.size())), m);
                 // max one of these icons, assumption: following cant yield higher scores (*)
                 break;
             }
