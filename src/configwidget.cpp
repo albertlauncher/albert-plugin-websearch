@@ -14,22 +14,24 @@
 #include <QSortFilterProxyModel>
 #include <QUuid>
 #include <albert/logging.h>
-enum class Section{ Name, Trigger, Fallback, URL} ;
+
+enum class Section { Name, Trigger, Fallback, URL };
 static const int sectionCount = 4;
+
 using namespace Qt::StringLiterals;
 using namespace std;
 
 class EnginesModel final : public QAbstractTableModel
 {
     Plugin *plugin_;
-    mutable std::map<QString,QIcon> iconCache;
+    mutable std::map<QString, QIcon> iconCache;
 
 public:
-    EnginesModel(Plugin *plugin, QObject *parent):
+    EnginesModel(Plugin *plugin, QObject *parent) :
         QAbstractTableModel(parent),
         plugin_(plugin)
     {
-        connect(plugin, &Plugin::enginesChanged, this, [this](){
+        connect(plugin, &Plugin::enginesChanged, this, [this]() {
             beginResetModel();
             iconCache.clear();
             endResetModel();
@@ -44,17 +46,17 @@ public:
 
     Qt::ItemFlags flags(const QModelIndex & index) const override
     {
-        auto f =  Qt::ItemIsSelectable | Qt::ItemIsEnabled;
+        auto f = Qt::ItemIsSelectable | Qt::ItemIsEnabled;
         switch ((Section)index.column()) {
         case Section::Fallback: return f | Qt::ItemIsUserCheckable;
-        case Section::Trigger: return f | Qt::ItemIsEditable;
-        default: return f;
+        case Section::Trigger:  return f | Qt::ItemIsEditable;
+        default:                return f;
         }
     }
 
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override
     {
-        if (section < 0 || sectionCount <= section )
+        if (section < 0 || sectionCount <= section)
             return {};
 
         if (orientation == Qt::Horizontal)
@@ -74,7 +76,11 @@ public:
             case Section::URL:
                 switch (role) {
                 case Qt::DisplayRole: return ConfigWidget::tr("URL");
-                case Qt::ToolTipRole: return ConfigWidget::tr("The URL of this search engine. %s will be replaced by your search term.");
+                case Qt::ToolTipRole:
+                    return ConfigWidget::tr(
+                        "Engine URL. Use %s for the full query, or %1 %2 %3... for arguments. "
+                        "Use quotes to keep spaces."
+                    );
                 default: return {};
                 }
             case Section::Fallback:
@@ -89,9 +95,9 @@ public:
 
     QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const override
     {
-        if ( !index.isValid() ||
+        if (!index.isValid() ||
             index.row() >= static_cast<int>(plugin_->engines().size()) ||
-            index.column() >= sectionCount )
+            index.column() >= sectionCount)
             return QVariant();
 
         const auto &se = plugin_->engines()[static_cast<ulong>(index.row())];
@@ -103,21 +109,22 @@ public:
             switch ((Section)index.column()) {
             case Section::Name:
                 return se.name;
-            case Section::Trigger:{
+            case Section::Trigger: {
                 auto trigger = se.trigger;
                 return trigger.replace(u' ', u'•');
             }
             case Section::URL:
                 return se.url;
-            default: break;
+            default:
+                break;
             }
             break;
         }
         case Qt::DecorationRole:
         {
             if ((Section)index.column() == Section::Name) {
-                // Resizing request thounsands of repaints. Creating an icon for
-                // ever paint event is to expensive. Therefor maintain an icon cache
+                // Resizing requests thousands of repaints. Creating an icon for
+                // every paint event is too expensive. Therefore maintain an icon cache.
                 auto icon_url = se.icon_path;
                 try {
                     return iconCache.at(icon_url);
@@ -155,8 +162,7 @@ public:
                     engine.trigger = value.toString();
                     plugin_->setEngines(engines);
                     return true;
-                }
-                catch (std::out_of_range &e){}
+                } catch (std::out_of_range &) {}
             }
             break;
 
@@ -169,17 +175,16 @@ public:
                     engine.fallback = value == Qt::Checked;
                     plugin_->setEngines(engines);
                     return true;
-                }
-                catch (std::out_of_range &e){}
+                } catch (std::out_of_range &) {}
             }
             break;
 
-        default: return false;
+        default:
+            return false;
         }
         return false;
     }
 };
-
 
 ConfigWidget::ConfigWidget(Plugin *plugin, QWidget *parent)
     : QWidget(parent), plugin_(plugin)
@@ -187,8 +192,8 @@ ConfigWidget::ConfigWidget(Plugin *plugin, QWidget *parent)
     ui.setupUi(this);
 
     ui.tableView_searches->setModel(new EnginesModel(plugin, ui.tableView_searches));
-    ui.tableView_searches->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);  // requires a model!
-    ui.tableView_searches->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);  // requires a model!
+    ui.tableView_searches->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);   // requires a model!
+    ui.tableView_searches->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents); // requires a model!
     ui.tableView_searches->horizontalHeader()->setStretchLastSection(true);
 
     connect(ui.pushButton_new, &QPushButton::clicked,
@@ -202,12 +207,11 @@ ConfigWidget::ConfigWidget(Plugin *plugin, QWidget *parent)
 
     connect(ui.tableView_searches, &QTableView::activated,
             this, &ConfigWidget::onActivated);
-
 }
 
 static void handleAcceptedEditor(const SearchEngineEditor &editor, SearchEngine &engine, const Plugin &plugin)
 {
-    if (editor.icon_image){  // If icon changed copy the file
+    if (editor.icon_image) { // If icon changed copy the file
 
         // If there has been a user icon remove it
         if (QUrl url(engine.icon_path); url.isLocalFile())
@@ -216,7 +220,7 @@ static void handleAcceptedEditor(const SearchEngineEditor &editor, SearchEngine 
         auto image = editor.icon_image->scaled(256, 256, Qt::KeepAspectRatio, Qt::SmoothTransformation);
 
         auto dst = QDir(plugin.dataLocation()).filePath(engine.id) + u".png"_s;
-        if (!image.save(dst)){
+        if (!image.save(dst)) {
             auto msg = ConfigWidget::tr("Could not save image to '%1'.").arg(dst);
             WARN << msg;
             QMessageBox::warning(nullptr, qApp->applicationDisplayName(), msg);
@@ -251,7 +255,7 @@ void ConfigWidget::onActivated(QModelIndex index)
                               engine.fallback,
                               this);
 
-    if (editor.exec()){
+    if (editor.exec()) {
         handleAcceptedEditor(editor, engine, *plugin_);
         plugin_->setEngines(engines);
     }
@@ -259,7 +263,7 @@ void ConfigWidget::onActivated(QModelIndex index)
 
 void ConfigWidget::onButton_new()
 {
-    if (SearchEngineEditor editor(u":default"_s, {}, {}, {}, false, this); editor.exec()){
+    if (SearchEngineEditor editor(u":default"_s, {}, {}, {}, false, this); editor.exec()) {
         SearchEngine engine;
         engine.id = QUuid::createUuid().toString(QUuid::WithoutBraces).left(8);
         engine.icon_path = u":default"_s;
@@ -280,8 +284,9 @@ void ConfigWidget::onButton_remove()
         this, qApp->applicationDisplayName(),
         tr("Do you really want to remove '%1' from the search engines?")
             .arg(plugin_->engines()[index.row()].name),
-        QMessageBox::Yes|QMessageBox::No);
-    if (reply == QMessageBox::Yes){
+        QMessageBox::Yes | QMessageBox::No);
+
+    if (reply == QMessageBox::Yes) {
         auto engines = plugin_->engines();
         auto &engine = engines[index.row()];
 
@@ -298,7 +303,8 @@ void ConfigWidget::onButton_restoreDefaults()
     auto reply = QMessageBox::question(
         this, qApp->applicationDisplayName(),
         tr("Do you really want to restore the default search engines?"),
-        QMessageBox::Yes|QMessageBox::No);
+        QMessageBox::Yes | QMessageBox::No);
+
     if (reply == QMessageBox::Yes)
         plugin_->restoreDefaultEngines();
 }

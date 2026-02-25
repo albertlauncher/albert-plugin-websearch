@@ -2,6 +2,7 @@
 
 #include "configwidget.h"
 #include "plugin.h"
+#include <QStringList>
 #include <QDir>
 #include <QFile>
 #include <QJsonArray>
@@ -16,6 +17,7 @@
 #include <albert/systemutil.h>
 #include <array>
 #include <vector>
+
 ALBERT_LOGGING_CATEGORY("websearch")
 using namespace Qt::StringLiterals;
 using namespace albert;
@@ -58,7 +60,7 @@ static vector<SearchEngine> deserializeEngines(const QByteArray &json)
         QJsonObject o = v.toObject();
         SearchEngine e;
 
-        // Todo remove this in future releasea
+        // Todo remove this in future releases
         if (o.contains(CK_ENGINE_ID))
             e.id = o[CK_ENGINE_ID].toString();
         else if (o.contains(CK_ENGINE_GUID))
@@ -136,9 +138,130 @@ void Plugin::restoreDefaultEngines()
     setEngines(searchEngines);
 }
 
+// Tokenize arguments with support for:
+// - spaces as separators
+// - "double quotes" or 'single quotes' to keep spaces inside one argument
+// - backslash escaping: \" , \' , \\ (and \\x keeps x)
+// Examples:
+//   abc "hello world" def  -> ["abc", "hello world", "def"]
+//   abc 'a b'               -> ["abc", "a b"]
+static QStringList tokenizeArgs(const QString &s)
+{
+    QStringList out;
+    QString cur;
+
+    enum class Mode { None, Single, Double };
+    Mode mode = Mode::None;
+
+    bool escape = false;
+
+    auto flush = [&](){
+        if (!cur.isEmpty()){
+            out.push_back(cur);
+            cur.clear();
+        }
+    };
+
+    for (int i = 0; i < s.size(); ++i)
+    {
+        const QChar c = s.at(i);
+
+        if (escape){
+            cur.append(c);
+            escape = false;
+            continue;
+        }
+
+        if (c == u'\\'){
+            escape = true;
+            continue;
+        }
+
+        if (mode == Mode::None)
+        {
+            if (c.isSpace()){
+                flush();
+                continue;
+            }
+            if (c == u'\''){
+                mode = Mode::Single;
+                continue;
+            }
+            if (c == u'"'){
+                mode = Mode::Double;
+                continue;
+            }
+            cur.append(c);
+        }
+        else if (mode == Mode::Single)
+        {
+            if (c == u'\''){
+                mode = Mode::None;
+                continue;
+            }
+            cur.append(c);
+        }
+        else // Mode::Double
+        {
+            if (c == u'"'){
+                mode = Mode::None;
+                continue;
+            }
+            cur.append(c);
+        }
+    }
+
+    // trailing backslash: keep it literally
+    if (escape)
+        cur.append(u'\\');
+
+    flush();
+    return out;
+}
+
 static shared_ptr<StandardItem> buildItem(const SearchEngine &se, const QString &search_term)
 {
-    QString url = QString(se.url).replace(u"%s"_s, percentEncoded(search_term));
+    // tail after trigger
+    const QString tail = search_term.trimmed();
+    const QStringList args = tokenizeArgs(tail);
+    const QString joined = args.join(u' ');
+
+    QString url = se.url;
+
+    // New placeholders:
+    //   %1 %2 %3 ...  -> individual arguments
+    // Legacy:
+    //   %s            -> full query (now tokenized + joined so quotes work)
+    bool hasNumbered = false;
+    for (int i = 1; i <= 50; ++i) {
+        if (url.contains(u'%' + QString::number(i))) {
+            hasNumbered = true;
+            break;
+        }
+    }
+
+    if (hasNumbered)
+    {
+        // Replace %1..%N
+        for (int i = 1; i <= 50; ++i)
+        {
+            const QString ph = u'%' + QString::number(i);
+            if (!url.contains(ph))
+                continue;
+
+            const QString val = (i-1 < args.size()) ? args.at(i-1) : QString();
+            url.replace(ph, percentEncoded(val));
+        }
+
+        // If user also uses legacy %s alongside numbered placeholders:
+        if (url.contains(u"%s"_s))
+            url.replace(u"%s"_s, percentEncoded(joined));
+    }
+    else
+    {
+        // Legacy behavior: %s = full query (tokenized + joined)
+        url.replace(u"%s"_s, percentEncoded(joined));
+    }
 
     return StandardItem::make(
         se.id,
@@ -175,7 +298,6 @@ vector<RankItem> Plugin::rankItems(QueryContext &ctx)
             }
         }
     }
-
 
     return results;
 }

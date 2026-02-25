@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>600</width>
+    <width>800</width>
     <height>320</height>
    </rect>
   </property>
@@ -133,10 +133,10 @@ or drop an image.</string>
      <item row="2" column="1">
       <widget class="QLineEdit" name="lineEdit_url">
        <property name="toolTip">
-        <string>The URL containing a %s that will be replaced by the query.</string>
+        <string>The URL containing %s (full query) or %1 %2 %3... (arguments). Use quotes for spaces.</string>
        </property>
        <property name="placeholderText">
-        <string>The URL containing a %s that will be replaced by the query.</string>
+        <string>The URL containing %s (full query) or %1 %2 %3... (arguments). Use quotes for spaces.</string>
        </property>
       </widget>
      </item>
