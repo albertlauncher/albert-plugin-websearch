@@ -150,7 +150,7 @@ static shared_ptr<StandardItem> buildItem(const SearchEngine &se, const QString 
     );
 }
 
-vector<RankItem> Plugin::rankItems(QueryContext &ctx)
+vector<RankItem> Plugin::rankItems(QueryContext ctx)
 {
     vector<RankItem> results;
 
