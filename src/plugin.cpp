@@ -23,7 +23,7 @@ using namespace std::filesystem;
 using namespace std;
 
 namespace {
-static const auto &ENGINES_FILE_NAME  = u"engines.json"_s;
+static const auto *ENGINES_FILE_NAME  = "engines.json";
 static const auto &CK_ENGINE_ID       = u"id"_s;
 static const auto &CK_ENGINE_GUID     = u"guid"_s;  // To be removed in future releases
 static const auto &CK_ENGINE_NAME     = u"name"_s;
@@ -38,11 +38,11 @@ Plugin::Plugin()
     create_directories(dataLocation());
     create_directories(configLocation());
 
-    QFile f(QDir(configLocation()).filePath(ENGINES_FILE_NAME));
-    if (f.open(QIODevice::ReadOnly))
-        setEngines(deserializeEngines(f.readAll()));
+    if (QFile f(configLocation() / ENGINES_FILE_NAME);
+        f.open(QIODevice::ReadOnly))
+        searchEngines_ = deserializeEngines(f.readAll());
     else
-        restoreDefaultEngines();
+        searchEngines_ = defaultEngines();
 }
 
 const vector<SearchEngine> &Plugin::engines() const
@@ -55,8 +55,8 @@ void Plugin::setEngines(vector<SearchEngine> engines)
 
     searchEngines_ = ::move(engines);
 
-    QFile f(QDir(configLocation()).filePath(ENGINES_FILE_NAME));
-    if (f.open(QIODevice::WriteOnly))
+    if (QFile f(configLocation() / ENGINES_FILE_NAME);
+        f.open(QIODevice::WriteOnly))
         f.write(serializeEngines(searchEngines_));
     else
         CRIT << u"Could not write to file: '%1' %2."_s.arg(f.fileName(), f.errorString());
@@ -64,14 +64,13 @@ void Plugin::setEngines(vector<SearchEngine> engines)
     emit enginesChanged(searchEngines_);
 }
 
-void Plugin::restoreDefaultEngines()
+vector<SearchEngine> Plugin::defaultEngines() const
 {
-    vector<SearchEngine> searchEngines;
-    QFile f(u':' + ENGINES_FILE_NAME);
-    if (f.open(QIODevice::ReadOnly))
-    {
-        const auto a = QJsonDocument::fromJson(f.readAll()).array();
-        for (const auto &v : a)
+    vector<SearchEngine> search_engines;
+
+    if (QFile f(u":%1"_s.arg(ENGINES_FILE_NAME));
+        f.open(QIODevice::ReadOnly))
+        for (const auto &v : QJsonDocument::fromJson(f.readAll()).array())
         {
             QJsonObject o = v.toObject();
             SearchEngine e;
@@ -81,13 +80,17 @@ void Plugin::restoreDefaultEngines()
             e.icon_path = o[CK_ENGINE_ICON].toString();
             e.url = o[CK_ENGINE_URL].toString();
             e.fallback = o[CK_ENGINE_FALLBACK].toBool(false);
-            searchEngines.push_back(e);
+            search_engines.push_back(e);
         }
-    }
     else
         CRIT << "Failed reading default engines.";
-    setEngines(searchEngines);
+
+    ranges::sort(search_engines, std::less(), &SearchEngine::name);
+
+    return search_engines;
 }
+
+void Plugin::restoreDefaultEngines() { setEngines(defaultEngines()); }
 
 QByteArray Plugin::serializeEngines(const vector<SearchEngine> &engines)
 {
@@ -111,7 +114,7 @@ QByteArray Plugin::serializeEngines(const vector<SearchEngine> &engines)
 
 vector<SearchEngine> Plugin::deserializeEngines(const QByteArray &json)
 {
-    vector<SearchEngine> searchEngines;
+    vector<SearchEngine> search_engines;
     for (const auto &v : QJsonDocument::fromJson(json).array())
     {
         QJsonObject o = v.toObject();
@@ -149,10 +152,12 @@ vector<SearchEngine> Plugin::deserializeEngines(const QByteArray &json)
         // we assume that all engines are fallbacks
         e.fallback = o[CK_ENGINE_FALLBACK].toBool(true);
 
-        searchEngines.push_back(e);
+        search_engines.push_back(e);
     }
 
-    return searchEngines;
+    ranges::sort(search_engines, std::less(), &SearchEngine::name);
+
+    return search_engines;
 }
 
 static shared_ptr<StandardItem> buildItem(const SearchEngine &se, const QString &search_term)
