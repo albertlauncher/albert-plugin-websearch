@@ -25,14 +25,18 @@ class Plugin : public albert::ExtensionPlugin,
 
 public:
     Plugin();
+
+    std::vector<albert::RankItem> rankItems(albert::QueryContext &) override;
+    std::vector<std::shared_ptr<albert::Item>> fallbacks(const QString &) const override;
+    QWidget *buildConfigWidget() override;
+
     const std::vector<SearchEngine>& engines() const;
     void setEngines(std::vector<SearchEngine> engines);
     void restoreDefaultEngines();
 
 private:
-    std::vector<albert::RankItem> rankItems(albert::QueryContext &) override;
-    std::vector<std::shared_ptr<albert::Item>> fallbacks(const QString &) const override;
-    QWidget *buildConfigWidget() override;
+    QByteArray serializeEngines(const std::vector<SearchEngine> &engines);
+    std::vector<SearchEngine> deserializeEngines(const QByteArray &json);
 
     std::vector<SearchEngine> searchEngines_;
 

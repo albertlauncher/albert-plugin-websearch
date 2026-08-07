@@ -19,6 +19,7 @@
 ALBERT_LOGGING_CATEGORY("websearch")
 using namespace Qt::StringLiterals;
 using namespace albert;
+using namespace std::filesystem;
 using namespace std;
 
 namespace {
@@ -32,58 +33,10 @@ static const auto &CK_ENGINE_ICON     = u"iconPath"_s;
 static const auto &CK_ENGINE_FALLBACK = u"fallback"_s;
 }
 
-static QByteArray serializeEngines(const vector<SearchEngine> &engines)
-{
-    QJsonArray a;
-    for (const SearchEngine& e : engines)
-    {
-        QJsonObject o;
-        o[CK_ENGINE_ID] = e.id;
-        o[CK_ENGINE_NAME] = e.name;
-        o[CK_ENGINE_URL] = e.url;
-        o[CK_ENGINE_TRIGGER] = e.trigger;
-        o[CK_ENGINE_ICON] = e.icon_path;
-        o[CK_ENGINE_FALLBACK] = e.fallback;
-        a.append(o);
-    }
-    return QJsonDocument(a).toJson();
-}
-
-static vector<SearchEngine> deserializeEngines(const QByteArray &json)
-{
-    vector<SearchEngine> searchEngines;
-    const auto a = QJsonDocument::fromJson(json).array();
-    for (const auto &v : a)
-    {
-        QJsonObject o = v.toObject();
-        SearchEngine e;
-
-        // Todo remove this in future releasea
-        if (o.contains(CK_ENGINE_ID))
-            e.id = o[CK_ENGINE_ID].toString();
-        else if (o.contains(CK_ENGINE_GUID))
-            e.id = o[CK_ENGINE_GUID].toString();
-
-        if (e.id.isEmpty())
-            e.id = QUuid::createUuid().toString(QUuid::WithoutBraces).left(8);
-
-        e.name = o[CK_ENGINE_NAME].toString();
-        e.trigger = o[CK_ENGINE_TRIGGER].toString().trimmed();
-        e.icon_path = o[CK_ENGINE_ICON].toString();
-        e.url = o[CK_ENGINE_URL].toString();
-        // change this to false in future releases
-        // For now while users configs do not have the fallback key,
-        // we assume that all engines are fallbacks
-        e.fallback = o[CK_ENGINE_FALLBACK].toBool(true);
-        searchEngines.push_back(e);
-    }
-    return searchEngines;
-}
-
 Plugin::Plugin()
 {
-    filesystem::create_directories(dataLocation());
-    filesystem::create_directories(configLocation());
+    create_directories(dataLocation());
+    create_directories(configLocation());
 
     QFile f(QDir(configLocation()).filePath(ENGINES_FILE_NAME));
     if (f.open(QIODevice::ReadOnly))
@@ -134,6 +87,72 @@ void Plugin::restoreDefaultEngines()
     else
         CRIT << "Failed reading default engines.";
     setEngines(searchEngines);
+}
+
+QByteArray Plugin::serializeEngines(const vector<SearchEngine> &engines)
+{
+    QJsonArray a;
+    for (const SearchEngine& e : engines)
+    {
+        QJsonObject o;
+        o[CK_ENGINE_ID] = e.id;
+        o[CK_ENGINE_NAME] = e.name;
+        o[CK_ENGINE_URL] = e.url;
+        o[CK_ENGINE_TRIGGER] = e.trigger;
+        if (e.icon_path.startsWith(u':'))
+            o[CK_ENGINE_ICON] = e.icon_path;
+        else
+            o[CK_ENGINE_ICON] = toQString(relative(e.icon_path.toStdString(), dataLocation()));
+        o[CK_ENGINE_FALLBACK] = e.fallback;
+        a.append(o);
+    }
+    return QJsonDocument(a).toJson();
+}
+
+vector<SearchEngine> Plugin::deserializeEngines(const QByteArray &json)
+{
+    vector<SearchEngine> searchEngines;
+    for (const auto &v : QJsonDocument::fromJson(json).array())
+    {
+        QJsonObject o = v.toObject();
+        SearchEngine e;
+
+        // Todo remove this in future release
+        if (o.contains(CK_ENGINE_ID))
+            e.id = o[CK_ENGINE_ID].toString();
+        else if (o.contains(CK_ENGINE_GUID))
+            e.id = o[CK_ENGINE_GUID].toString();
+
+        if (e.id.isEmpty())
+            e.id = QUuid::createUuid().toString(QUuid::WithoutBraces).left(8);
+
+        e.name = o[CK_ENGINE_NAME].toString();
+
+        e.trigger = o[CK_ENGINE_TRIGGER].toString().trimmed();
+
+        if (auto icon_path = o[CK_ENGINE_ICON].toString();
+            icon_path.startsWith(u':'))
+            e.icon_path = icon_path;
+
+        // Porting code. TODO: (2026-08-08) remove in future.
+        else if (path fs_icon_path = icon_path.toStdString();
+                 fs_icon_path.is_absolute())
+            e.icon_path = icon_path;
+
+        else
+            e.icon_path = toQString(dataLocation() / icon_path.toStdString());
+
+        e.url = o[CK_ENGINE_URL].toString();
+
+        // change this to false in future releases
+        // For now while users configs do not have the fallback key,
+        // we assume that all engines are fallbacks
+        e.fallback = o[CK_ENGINE_FALLBACK].toBool(true);
+
+        searchEngines.push_back(e);
+    }
+
+    return searchEngines;
 }
 
 static shared_ptr<StandardItem> buildItem(const SearchEngine &se, const QString &search_term)
