@@ -40,28 +40,28 @@ Plugin::Plugin()
 
     if (QFile f(configLocation() / ENGINES_FILE_NAME);
         f.open(QIODevice::ReadOnly))
-        searchEngines_ = deserializeEngines(f.readAll());
+        search_engines_ = deserializeEngines(f.readAll());
     else
-        searchEngines_ = defaultEngines();
+        search_engines_ = defaultEngines();
 }
 
 const vector<SearchEngine> &Plugin::engines() const
-{ return searchEngines_; }
+{ return search_engines_; }
 
 void Plugin::setEngines(vector<SearchEngine> engines)
 {
     sort(begin(engines), end(engines),
          [](auto a, auto b){ return a.name < b.name; });
 
-    searchEngines_ = ::move(engines);
+    search_engines_ = ::move(engines);
 
     if (QFile f(configLocation() / ENGINES_FILE_NAME);
         f.open(QIODevice::WriteOnly))
-        f.write(serializeEngines(searchEngines_));
+        f.write(serializeEngines(search_engines_));
     else
         CRIT << u"Could not write to file: '%1' %2."_s.arg(f.fileName(), f.errorString());
 
-    emit enginesChanged(searchEngines_);
+    emit enginesChanged(search_engines_);
 }
 
 vector<SearchEngine> Plugin::defaultEngines() const
@@ -178,7 +178,7 @@ vector<RankItem> Plugin::rankItems(QueryContext &ctx)
 {
     vector<RankItem> results;
 
-    for (const SearchEngine &e: searchEngines_)
+    for (const SearchEngine &e: search_engines_)
     {
         vector<QString> S{ e.trigger, e.name };
 
@@ -208,7 +208,7 @@ vector<shared_ptr<Item>> Plugin::fallbacks(const QString &query) const
 {
     vector<shared_ptr<Item>> results;
     if (!query.isEmpty())
-        for (const SearchEngine &e: searchEngines_)
+        for (const SearchEngine &e: search_engines_)
             if (e.fallback)
                 results.emplace_back(buildItem(e, query.isEmpty() ? u"…"_s : query));
     return results;

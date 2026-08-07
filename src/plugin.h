@@ -39,7 +39,7 @@ private:
     std::vector<SearchEngine> deserializeEngines(const QByteArray &json);
     std::vector<SearchEngine> defaultEngines() const;
 
-    std::vector<SearchEngine> searchEngines_;
+    std::vector<SearchEngine> search_engines_;
 
 signals:
     void enginesChanged(const std::vector<SearchEngine> &engines);
