@@ -37,7 +37,6 @@ public:
 private:
     QByteArray serializeEngines(const std::vector<SearchEngine> &engines);
     std::vector<SearchEngine> deserializeEngines(const QByteArray &json);
-    std::vector<SearchEngine> defaultEngines() const;
 
     std::vector<SearchEngine> search_engines_;
 
