@@ -25,7 +25,6 @@ using namespace std;
 namespace {
 static const auto *ENGINES_FILE_NAME  = "engines.json";
 static const auto &CK_ENGINE_ID       = u"id"_s;
-static const auto &CK_ENGINE_GUID     = u"guid"_s;  // To be removed in future releases
 static const auto &CK_ENGINE_NAME     = u"name"_s;
 static const auto &CK_ENGINE_URL      = u"url"_s;
 static const auto &CK_ENGINE_TRIGGER  = u"trigger"_s;
@@ -45,8 +44,7 @@ Plugin::Plugin()
         search_engines_ = defaultEngines();
 }
 
-const vector<SearchEngine> &Plugin::engines() const
-{ return search_engines_; }
+const vector<SearchEngine> &Plugin::engines() const { return search_engines_; }
 
 void Plugin::setEngines(vector<SearchEngine> engines)
 {
@@ -64,6 +62,8 @@ void Plugin::setEngines(vector<SearchEngine> engines)
     emit enginesChanged(search_engines_);
 }
 
+static QString createUuid() { return QUuid::createUuid().toString(QUuid::WithoutBraces).left(8); }
+
 vector<SearchEngine> Plugin::defaultEngines() const
 {
     vector<SearchEngine> search_engines;
@@ -74,7 +74,7 @@ vector<SearchEngine> Plugin::defaultEngines() const
         {
             QJsonObject o = v.toObject();
             SearchEngine e;
-            e.id = QUuid::createUuid().toString(QUuid::WithoutBraces).left(8);
+            e.id = createUuid();
             e.name = o[CK_ENGINE_NAME].toString();
             e.trigger = o[CK_ENGINE_TRIGGER].toString();
             e.icon_path = o[CK_ENGINE_ICON].toString();
@@ -120,14 +120,7 @@ vector<SearchEngine> Plugin::deserializeEngines(const QByteArray &json)
         QJsonObject o = v.toObject();
         SearchEngine e;
 
-        // Todo remove this in future release
-        if (o.contains(CK_ENGINE_ID))
-            e.id = o[CK_ENGINE_ID].toString();
-        else if (o.contains(CK_ENGINE_GUID))
-            e.id = o[CK_ENGINE_GUID].toString();
-
-        if (e.id.isEmpty())
-            e.id = QUuid::createUuid().toString(QUuid::WithoutBraces).left(8);
+        e.id = o[CK_ENGINE_ID].toString(createUuid());
 
         e.name = o[CK_ENGINE_NAME].toString();
 
@@ -147,10 +140,7 @@ vector<SearchEngine> Plugin::deserializeEngines(const QByteArray &json)
 
         e.url = o[CK_ENGINE_URL].toString();
 
-        // change this to false in future releases
-        // For now while users configs do not have the fallback key,
-        // we assume that all engines are fallbacks
-        e.fallback = o[CK_ENGINE_FALLBACK].toBool(true);
+        e.fallback = o[CK_ENGINE_FALLBACK].toBool();
 
         search_engines.push_back(e);
     }
